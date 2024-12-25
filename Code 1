@@ -145,6 +145,7 @@ nombre_partie = 0
 
 #boucle principale
 running = True
+last_score = 0
 while running :
     fenetre.fill(blanc)
     # Gestion des événements
@@ -170,7 +171,7 @@ while running :
             score += 1
             tuyau["depasse"] = True  # Marquer le bloc comme dépassé
 
-    title_score = font.render(f"Votre score: {score}", True, noir)
+    title_score = font.render(f"Votre score: {last_score}", True, noir)
                  #------------- Ecran de lancement -------------#
     if not gameOn :
           # Quand la partie n'est pas lancée
@@ -254,6 +255,9 @@ while running :
        
             #sound_hit.play()
             gameOn = False
+
+            # Sauvegarder score actuel avant réinitialisation
+            last_score = score
             
             # Réinitialiser les variables 
             score = 0
