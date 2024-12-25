@@ -1,6 +1,7 @@
 import pygame
 import os
 import random
+
 #Pseudo
 #while True :
    # pseudo = input("Quel est votre pseudo? ")
@@ -29,269 +30,200 @@ import random
 
 
 
-#initialisation de pygame
+# Initialisation de pygame
 pygame.init()
 
-#création de la fenêtre
+# Création de la fenêtre
 largeur, hauteur = 800, 600
 fenetre = pygame.display.set_mode((largeur, hauteur))
-pygame.display.set_caption("Flabby Pird")
+pygame.display.set_caption("Flappy Bird")
 
-#Couleurs 
+# Couleurs 
 blanc = (255, 255, 255)
 noir = (0, 0, 0)
 gris = (100, 100, 100)
 orange = (255, 165, 0)
 
-
-
-#Fichiers audio
-#sound_jump = pygame.mixer.Sound('Sons/Jump.wav')
-#sound_hit = pygame.mixer.Sound('Sons/Collision.wav')
-#sound_lobby = pygame.mixer.Sound('Sons/lobby.wav')
-
-#vitesse de déplacement du sol
-scroll_speed =2
-#score
+# Vitesse de déplacement du sol
+scroll_speed = 2
+# Score
 score = 0
 
-#gestion des tuyaux
-
-pipe = pygame.image.load(os.path.join('images', 'Pipe.png')) 
+# Gestion des tuyaux
+pipe = pygame.image.load(os.path.join('images', 'Pipe.png'))
 hauteur_tuyau = 250
 largeur_tuyau = 75
 pipe = pygame.transform.scale(pipe, (largeur_tuyau, hauteur))
-#positionner les tuyaux
-tuyauX = 0
-tuyauY = hauteur - hauteur_tuyau 
+
+# Positionner les tuyaux
 tuyaux = []
 intervalle = largeur // 3 + largeur_tuyau // 3
+espace_tuyaux = 200  # Espace entre les tuyaux du haut et du bas
 
-for i in range (3):
-    hauteur_tuyau = random.randint(75, 300)
+for i in range(3):
+    hauteur_tuyau_bas = random.randint(100, 400)
     tuyauX = largeur + i * intervalle
-    tuyauY = hauteur - hauteur_tuyau
-    tuyaux.append({"rect": pygame.Rect(tuyauX, tuyauY, largeur_tuyau, hauteur_tuyau), "depasse": False})
-    
+    tuyauY_bas = hauteur - hauteur_tuyau_bas
+    tuyauY_haut = tuyauY_bas - espace_tuyaux - hauteur
+    tuyaux.append({
+        "rect_bas": pygame.Rect(tuyauX, tuyauY_bas, largeur_tuyau, hauteur_tuyau_bas),
+        "rect_haut": pygame.Rect(tuyauX, tuyauY_haut, largeur_tuyau, hauteur),
+        "depasse": False
+    })
 
-
-#Gestion de l'image arrière plan
-    #Chargement du Background
+# Gestion de l'image arrière plan
 background = pygame.image.load(os.path.join('images', 'background.png'))
-background = pygame.transform.scale(background, (largeur, hauteur))  # Dimensionement
-
-#positionner le background
+background = pygame.transform.scale(background, (largeur, hauteur))
 background_x = 0
 
+# Gestion de l'image de l'oiseau
+taille_birdX, taille_birdY = 50, 35
+bird = pygame.image.load(os.path.join('images', 'Bird.png'))
+bird = pygame.transform.scale(bird, (taille_birdX, taille_birdY))
 
-#Gestion de l'image de l'oiseau
-taille_birdX = 50
-taille_birdY = 35
-bird = pygame.image.load(os.path.join('images', 'Bird.png'))   # Chargement de l'image 
-bird = pygame.transform.scale(bird, (taille_birdX, taille_birdY))    # Dimensionement 
-
-
-#Gestion de l'image Sol (Ground)
-
+# Gestion de l'image Sol (Ground)
 ground = pygame.image.load(os.path.join('images', 'Ground.png'))
 hauteur_sol = ground.get_height()
 ground = pygame.transform.scale(ground, (largeur, hauteur_sol))
 
-
-#positionner le sol
-groundX = 0
-groundY = 540
+# Positionner le sol
+groundX, groundY = 0, 540
 
 # Position de l'oiseau
-birdX = largeur // 6 - bird.get_width() // 6 # Au milieu
-birdY = hauteur // 2 - bird.get_height() // 2  # En bas
+birdX = largeur // 6 - bird.get_width() // 6
+birdY = hauteur // 2 - bird.get_height() // 2
 
-#Rectangle pour l'oiseau
-bird_rect = pygame.Rect(birdX  , birdY, taille_birdX, taille_birdY)
+# Rectangle pour l'oiseau
+bird_rect = pygame.Rect(birdX, birdY, taille_birdX, taille_birdY)
 
-# Compteur de sauts
-jump_count = 0  # Initialisation du compteur de sauts
-
-## Paramètre de l'écran de lancement
-#texte de score
-font = pygame.font.SysFont("comicsans", 40)  # Police de 40 pixels
-font_pseudo = pygame.font.SysFont("comicsans", 40)  # Police de 40 pixels
-title_pseudo = font_pseudo.render(f"Bienvenue ", True, orange)#######################Mettre "Bienvenue {pseudo}" à la fin
+# Paramètre de l'écran de lancement
+font = pygame.font.SysFont("comicsans", 40)
+font_pseudo = pygame.font.SysFont("comicsans", 40)
+title_pseudo = font_pseudo.render("Bienvenue ", True, orange)
 title_text = font.render("Appuyez sur ESPACE pour jouer", True, noir)
 
 gameOn = False
 
+# Paramètres de texte
+Taille_titre, Taille_score = 40, 20
+font_titre = pygame.font.SysFont("comicsans", Taille_titre)
+font_score = pygame.font.SysFont("comicsans", Taille_score)
 
-
-#--- Paramètres de texte
-## Tailles des textes
-Taille_titre = 40
-Taille_score = 20
-## Police pour le titre et le compteur
-font_titre = pygame.font.SysFont("comicsans", Taille_titre)  
-font_score = pygame.font.SysFont("comicsans", Taille_score) 
-
-
-#----PARAMETRES DE SAUT----#
-isJumping = False #pour vérifier si l'oiseau est en train de sauter
-
-# Gravité
-jumpForce = 11  # Force du saut
-gravity = 1  # Force de gravité
-velocityY = 0 # Vitesse verticale
+# Paramètres de saut
+isJumping = False
+jumpForce = 11
+gravity = 1
+velocityY = 0
 
 nombre_partie = 0
 
-
-#boucle principale
+# Boucle principale
 running = True
 last_score = 0
-while running :
+
+while running:
     fenetre.fill(blanc)
-    # Gestion des événements
+    
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.KEYDOWN :
-            if event.key == pygame.K_SPACE :
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
                 isJumping = True
-                #sound_jump.play()
-                
-            if event.key == pygame.K_SPACE: # Vérification de l'appui sur la barre d'espace
-                gameOn = True 
-                #- Saut Gravité
-                velocityY = -jumpForce  # Appliquer la force de saut
-                jump_count += 1  # Incrémenter le compteur de sauts
+                gameOn = True
+                velocityY = -jumpForce
 
-# Détection des sauts réussis
+    # Détection des sauts réussis
     bird_rect = pygame.Rect(birdX, birdY, bird.get_width(), bird.get_height())
     for tuyau in tuyaux:
-        # Vérifier si le bloc a été dépassé sans collision
-        if not tuyau["depasse"] and tuyau["rect"].right < birdX :
+        if not tuyau["depasse"] and tuyau["rect_bas"].right < birdX:
             score += 1
-            tuyau["depasse"] = True  # Marquer le bloc comme dépassé
+            tuyau["depasse"] = True
 
     title_score = font.render(f"Votre score: {last_score}", True, noir)
-                 #------------- Ecran de lancement -------------#
-    if not gameOn :
-          # Quand la partie n'est pas lancée
-        fenetre.blit(title_pseudo, (largeur // 2 - title_score.get_width() // 2 + 45 , 75))#affichage de bienvenue pseudo
-        fenetre.blit(title_text, (largeur // 2 - title_text.get_width() // 2, 500)) # Affichage du texte de lancement
 
-                        
-        fenetre.blit(title_text, (largeur // 2 - title_text.get_width() // 2, 500)) # Affichage du texte de lancement
-        fenetre.blit(title_score, (largeur // 2 - title_score.get_width() // 2, hauteur // 2 - title_score.get_height() // 2 - 50))#affichage votre score
-                
-        pygame.display.flip() # Néscessité d'actualiser l'affichage
+    if not gameOn:
+        fenetre.blit(title_pseudo, (largeur // 2 - title_score.get_width() // 2 + 45, 75))
+        fenetre.blit(title_text, (largeur // 2 - title_text.get_width() // 2, 500))
+        fenetre.blit(title_score, (largeur // 2 - title_score.get_width() // 2, hauteur // 2 - title_score.get_height() // 2 - 50))
+        pygame.display.flip()
         pygame.time.Clock().tick(60)
-        
-       
-        
+        continue
 
-        continue# Arrête l'exécution de ce tour de boucle et recommence la boucle directement au début
-
-
-    if isJumping:    
-        #- Saut avec Gravité
-        birdY += velocityY  # Appliquer la vitesse verticale
-        # Appliquer la gravité
+    if isJumping:
+        birdY += velocityY
         velocityY += gravity
-        bird_rect.y = birdY #Mettre à jour la position du rectangle de l'oiseau
-         
-    if birdY <= 0 :
-        birdY = 0 # Remettre exactement au plafond
-        velocityY = 1  
+        bird_rect.y = birdY
 
-#mouvement des tuyaux en bas
-    for tuyau in tuyaux :
-        tuyau["rect"].x -= scroll_speed + 1 #vitesse des tuyaux
-       
-        if tuyau["rect"].right < 0:
-            tuyau["rect"].x = largeur
-            hauteur_tuyau = random.randint(100, 400)
-            hauteur_tuyau_haut = hauteur_tuyau
-            tuyau["rect"].height = hauteur_tuyau
-            tuyau["rect"].y = hauteur - tuyau["rect"].height
-            tuyau["depasse"] = False #réinitialiser statut tuyau
+    if birdY <= 0:
+        birdY = 0
+        velocityY = 1
 
-            
- 
-    
+    # Mouvement des tuyaux
+    for tuyau in tuyaux:
+        tuyau["rect_bas"].x -= scroll_speed + 1
+        tuyau["rect_haut"].x -= scroll_speed + 1
+        
+        if tuyau["rect_bas"].right < 0:
+            tuyau["rect_bas"].x = largeur
+            tuyau["rect_haut"].x = largeur
+            hauteur_tuyau_bas = random.randint(100, 400)
+            tuyau["rect_bas"].height = hauteur_tuyau_bas
+            tuyau["rect_bas"].y = hauteur - tuyau["rect_bas"].height
+            tuyau["rect_haut"].y = tuyau["rect_bas"].y - espace_tuyaux - hauteur
+            tuyau["depasse"] = False
 
-
-            
-   
-#------------BACKGROUND------------#   
-    #Affichet background sur l'écran
+    # Afficher background
     fenetre.blit(background, (background_x, 0))
-     
-   #------------OISEAU------------# si je ne vois pas une image, vérifier qu'elle est au-dessus du background (plus bas dans le code)
-    #Afficher oiseau sur l'écran
+
+    # Afficher oiseau
     fenetre.blit(bird, (birdX, birdY))
 
-    #----SOL----#
-    groundX -= scroll_speed #déplace le sol vers la gauche
-    # Si le sol sort de l'écran, réinitialiser la position
+    # Afficher sol
+    groundX -= scroll_speed
     if groundX <= -largeur:
         groundX = 0
     fenetre.blit(ground, (groundX, groundY))
-    fenetre.blit(ground, (groundX + largeur , hauteur- 60)) # Combler le vide
+    fenetre.blit(ground, (groundX + largeur, hauteur - 60))
 
-     # Afficher les tuyaux
+    # Afficher les tuyaux
     for tuyau in tuyaux:
-        fenetre.blit(pipe, (tuyau["rect"].x, tuyau["rect"].y)) 
-        
-  
-  
+        fenetre.blit(pipe, (tuyau["rect_bas"].x, tuyau["rect_bas"].y))
+        pipe_haut = pygame.transform.flip(pipe, False, True)
+        fenetre.blit(pipe_haut, (tuyau["rect_haut"].x, tuyau["rect_haut"].y))
 
-    
-
-
- # Détection de collision
-    
-    for tuyau in tuyaux :
-        if bird_rect.colliderect(tuyau["rect"]) or birdY >= 522: # Si l'oiseau dépasse le sol. SI on est exact, on mettrait hauteur - ground.get_height() // 2
+    # Détection de collision
+    for tuyau in tuyaux:
+        if bird_rect.colliderect(tuyau["rect_bas"]) or bird_rect.colliderect(tuyau["rect_haut"]) or birdY >= 522:
             print(f"Votre score : {score}")
-       
-            #sound_hit.play()
             gameOn = False
-
-            # Sauvegarder score actuel avant réinitialisation
             last_score = score
-            
-            # Réinitialiser les variables 
             score = 0
-            birdX = largeur // 6 - bird.get_width() // 6 # Au milieu
-            birdY = hauteur // 2 - bird.get_height() // 2 # En bas 
-            bird_rect = pygame.Rect(birdX, birdY, taille_birdX, taille_birdY) 
-            tuyaux = [] 
-            intervalle = largeur // 3 + largeur_tuyau // 3
-            espace_tuyaux = 300 # Espace entre les tuyaux du haut et du bas
-            fenetre.fill(blanc)
-            
+            birdX = largeur // 6 - bird.get_width() // 6
+            birdY = hauteur // 2 - bird.get_height() // 2
+            bird_rect = pygame.Rect(birdX, birdY, taille_birdX, taille_birdY)
+            tuyaux = []
             for i in range(3):
-                 hauteur_tuyau = random.randint(75, 300)
-                 tuyauX = largeur + i * intervalle
-                 tuyauY = hauteur - hauteur_tuyau 
-                 tuyaux.append({"rect": pygame.Rect(tuyauX, tuyauY, largeur_tuyau, hauteur_tuyau), "depasse": False}) 
-                  
-                 isJumping = False 
-                 velocityY = 0
-                 groundX = 0
-                 nombre_partie += 1
-                 
-#Affichage du compteur de sauts en haut à gauche
-    jump_counter_text = font_score.render(f"Score: {score}", True, noir)  
-    fenetre.blit(jump_counter_text, (30, 10))  # Position en haut à gauche
+                hauteur_tuyau_bas = random.randint(100, 400)
+                tuyauX = largeur + i * intervalle
+                tuyauY_bas = hauteur - hauteur_tuyau_bas
+                tuyauY_haut = tuyauY_bas - espace_tuyaux - hauteur
+                tuyaux.append({
+                    "rect_bas": pygame.Rect(tuyauX, tuyauY_bas, largeur_tuyau, hauteur_tuyau_bas),
+                    "rect_haut": pygame.Rect(tuyauX, tuyauY_haut, largeur_tuyau, hauteur),
+                    "depasse": False
+                })
+            isJumping = False
+            velocityY = 0
+            groundX = 0
+            nombre_partie += 1
 
-#-----Mise à jour de l'écran-----#
-    
+    # Affichage du score
+    jump_counter_text = font_score.render(f"Score: {score}", True, noir)
+    fenetre.blit(jump_counter_text, (30, 10))
+
     pygame.display.flip()
-   
-
-
-     # Contrôle de la vitesse de la boucle (FPS)
     pygame.time.Clock().tick(60)
 
-    # Quitter Pygame proprement
 pygame.quit()
+
