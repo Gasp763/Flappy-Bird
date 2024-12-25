@@ -1,0 +1,216 @@
+import pygame
+import os
+import random
+#initialisaion de pygame
+pygame.init()
+
+#création de la fenêtre
+largeur, hauteur = 800, 600
+fenetre = pygame.display.set_mode((largeur, hauteur))
+pygame.display.set_caption("Flabby Pird")
+
+#Couleurs 
+blanc = (255, 255, 255)
+noir = (0, 0, 0)
+gris = (255, 0, 0)
+
+#vitesse de déplacement du sol
+scroll_speed = 2
+
+#Gestion de l'image arrière plan
+    #Chargement du Background
+background = pygame.image.load(os.path.join('images', 'background.png'))
+background = pygame.transform.scale(background, (largeur, hauteur))  # Dimensionement
+
+#positionner le background
+background_x = 0
+
+
+#Gestion de l'image de l'oiseau
+taille_birdX = 50
+taille_birdY = 35
+bird = pygame.image.load(os.path.join('images', 'Bird.png'))   # Chargement de l'image 
+bird = pygame.transform.scale(bird, (taille_birdX, taille_birdY))    # Dimensionement 
+
+
+#Gestion de l'image Sol (Ground)
+
+ground = pygame.image.load(os.path.join('images', 'Ground.png'))
+hauteur_sol = ground.get_height()
+ground = pygame.transform.scale(ground, (largeur, hauteur_sol))
+
+
+#positionner le sol
+groundX = 0
+groundY = 540
+
+
+    # Variables des blocs gris en bas
+largeur_bloc = 50
+hauteur_bloc = 100
+blocs = []
+intervalle = largeur // 3 + largeur_bloc // 3
+
+
+pipe = pygame.image.load(os.path.join('images', 'Pipe.png'))
+hauteur_tuyau = 250
+largeur_tuyau = 75
+pipe = pygame.transform.scale(pipe, (largeur_tuyau, hauteur))
+#positionner les tuyaux
+tuyauX = 0
+tuyauY = hauteur - hauteur_tuyau 
+tuyaux = []
+
+#variable blocs en haut
+hauteur_bloc_haut = hauteur_bloc 
+blocs_haut = []
+
+
+espace = 150
+
+# Génération des blocs gris en bas
+for i in range(3):
+    # Blocs bas
+    hauteur_bloc = random.randint(50, 250)
+    x_bloc = largeur + i * intervalle
+    y_bloc = hauteur - hauteur_bloc
+    blocs.append(pygame.Rect(x_bloc, y_bloc, largeur_bloc, hauteur_bloc))
+
+    # Tuyaux
+    tuyaux.append({
+        "rect": pygame.Rect(x_bloc, y_bloc, largeur_tuyau, hauteur_bloc),
+        "depasse": False
+    })
+
+# Blocs haut
+    hauteur_bloc_haut = hauteur - hauteur_bloc - espace
+    blocs_haut.append(pygame.Rect(x_bloc, 0, largeur_bloc, hauteur_bloc_haut))
+
+
+
+# Position de l'oiseau
+birdX = largeur // 6 - bird.get_width() // 6 # Au milieu
+birdY = hauteur // 2 - bird.get_height() // 2  # En bas
+
+# Compteur de sauts
+jump_count = 0  # Initialisation du compteur de sauts
+
+#--- Paramètres de texte
+## Tailles des textes
+Taille_titre = 40
+Taille_score = 20
+## Police pour le titre et le compteur
+font_titre = pygame.font.SysFont("comicsans", Taille_titre)  
+font_score = pygame.font.SysFont("comicsans", Taille_score) 
+
+
+#----PARAMETRES DE SAUT----#
+isJumping = False #pour vérifier si l'oiseau est en train de sauter
+
+# Gravité
+jumpForce = 11  # Force du saut
+gravity = 1  # Force de gravité
+velocityY = 0 # Vitesse verticale
+
+
+#boucle principale
+running = True
+while running :
+    # Gestion des événements
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.KEYDOWN :
+            if event.key == pygame.K_SPACE :
+                isJumping = True
+
+
+                #- Saut Gravité
+                velocityY = -jumpForce  # Appliquer la force de saut
+                jump_count += 1  # Incrémenter le compteur de sauts
+
+    if isJumping:    
+        #- Saut avec Gravité
+        birdY += velocityY  # Appliquer la vitesse verticale
+                # Appliquer la gravité
+        velocityY += gravity
+
+         # Vérifier si l'image touche le sol
+         #L'OISEAU NE DEPASSE PAS LE SOL
+    if birdY >= 522:  # Si l'oiseau dépasse le sol. SI on est exact, on mettrait hauteur - ground.get_height() // 2
+            birdY = 522 # il ne vas pas plus bas.
+            isJumping = False  # Finir le saut
+            velocityY = 0  # Réinitialiser la vitesse
+    if birdY <= 0 :
+        birdY = 0 # Remettre exactement au plafond
+        velocityY = 1  
+
+        #------------- Déplacement des blocs -------------#
+    # Mouvement des blocs gris
+    for bloc in blocs:
+        bloc.x -= scroll_speed 
+     
+    if bloc.right < 0:
+        bloc.x = largeur
+        bloc.height = random.randint(50, 250)
+        bloc.y = hauteur - bloc.height
+        index = blocs.index(bloc)
+        blocs_haut[index].height = hauteur - bloc.height - espace
+        blocs_haut[index].x = bloc.x
+
+        # Synchronisation des tuyaux
+        tuyaux[index]["rect"].x = bloc.x
+        tuyaux[index]["rect"].height = bloc.height
+        tuyaux[index]["rect"].y = bloc.y
+
+    for tuyau in tuyaux:
+        tuyau["rect"].x -= scroll_speed
+        if tuyau["rect"].right < 0:
+            index = tuyaux.index(tuyau)
+            tuyau["rect"].x = blocs[index].x
+            tuyau["rect"].height = blocs[index].height
+            tuyau["rect"].y = blocs[index].y
+        
+ 
+    #mise à jour de l'affichage (mettre fond blanc mais ne sert pas à grand chose car on mettra background après)
+    #fenetre.fill(blanc)
+    
+#------------BACKGROUND------------#   
+    #Affichet background sur l'écran
+    fenetre.blit(background, (background_x, 0))
+     
+   #------------OISEAU------------# si je ne vois pas une image, vérifier qu'elle est au-dessus du background (plus bas dans le code)
+    #Afficher oiseau sur l'écran
+    fenetre.blit(bird, (birdX, birdY))
+
+    #----SOL----#
+    groundX -= scroll_speed #déplace le sol vers la gauche
+    # Si le sol sort de l'écran, réinitialiser la position
+    if groundX <= -largeur:
+        groundX = 0
+    fenetre.blit(ground, (groundX, groundY))
+    fenetre.blit(ground, (groundX + largeur , hauteur- 60)) # Combler le vide
+
+# affichage des blocs
+    for bloc in blocs:
+        pygame.draw.rect(fenetre, gris, bloc)  # Blocs gris
+    for bloc in blocs_haut:
+        pygame.draw.rect(fenetre, gris, bloc)  # Blocs gris
+#affichage des tuyaux
+    for tuyau in tuyaux:
+        fenetre.blit(pipe, (tuyau["rect"].x, tuyau["rect"].y))
+#Affichage du compteur de sauts en haut à gauche
+    jump_counter_text = font_score.render(f"Sauts: {jump_count}", True, noir)  
+    fenetre.blit(jump_counter_text, (700, 10))  # Position en haut à gauche
+
+#-----Mise à jour de l'écran-----#
+    
+    pygame.display.flip()
+   
+
+
+     # Contrôle de la vitesse de la boucle (FPS)
+    pygame.time.Clock().tick(60)
+
+    # Quitter Pygame proprement
+pygame.quit()
